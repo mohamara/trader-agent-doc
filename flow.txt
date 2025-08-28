@@ -1,0 +1,1 @@
+Data Input → monitor and analyze data → detecting pattern → Signal Generator → Risk Manager → Position Executor → Performance Tracker
