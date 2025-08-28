@@ -1,4 +1,4 @@
-## How It Works
+## How agnt Works
 
 This document explains how the Trading Strategy Analysis Platform works end-to-end. It covers the architecture, data flow, analysis pipeline, API-panel integration, backtesting, operations, and key value propositions for investors.
 
