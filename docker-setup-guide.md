@@ -1,13 +1,6 @@
-# Trading Strategy Panel Docker Setup
+# Docker Setup Guide
 
-This Docker setup implements the functionality of `start_panel.sh` in a containerized environment, running both the core engine API and the frontend panel.
-
-## Files Created
-
-- `Dockerfile.panel` - Multi-stage Dockerfile that builds both core engine and panel
-- `docker-compose.panel.yml` - Docker Compose configuration for easy deployment
-- `start_panel_docker.sh` - Startup script for Docker deployment
-- `PANEL_DOCKER_README.md` - This documentation
+This document explains the Docker containerized setup for the Trading Strategy Analysis Platform, providing both development and production deployment options.
 
 ## Quick Start
 
@@ -181,4 +174,26 @@ For production deployment:
 | Containerization | ❌ | ✅ |
 | Volume Persistence | ❌ | ✅ |
 | Production Ready | ❌ | ✅ |
-| Easy Deployment | ❌ | ✅ | 
+| Easy Deployment | ❌ | ✅ |
+
+## Benefits of Docker Setup
+
+### Consistency
+- **Environment Parity**: Same environment across development, staging, and production
+- **Dependency Management**: All dependencies bundled in container
+- **Version Control**: Exact versions of all components
+
+### Scalability
+- **Horizontal Scaling**: Easy to run multiple instances
+- **Load Balancing**: Simple integration with load balancers
+- **Resource Management**: Controlled resource allocation
+
+### Deployment
+- **Rolling Updates**: Zero-downtime deployments
+- **Rollback**: Quick rollback to previous versions
+- **Blue-Green**: Easy blue-green deployment setup
+
+### Operations
+- **Monitoring**: Built-in health checks and logging
+- **Backup**: Simple volume backup and restore
+- **Security**: Isolated execution environment

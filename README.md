@@ -1,333 +1,201 @@
-# Trading Strategy Analysis Platform
+## How It Works
 
-A comprehensive trading strategy analysis platform consisting of a Python-based core engine and a web-based analysis panel.
+This document explains how the Trading Strategy Analysis Platform works end-to-end. It covers the architecture, data flow, analysis pipeline, API-panel integration, backtesting, operations, and key value propositions for investors.
 
-## Architecture
+### 📚 Complete Documentation
 
-- **Core Engine** - Python backend with FastAPI providing strategy analysis
-- **Panel** - Web frontend for strategy configuration and visualization
-- **Infrastructure** - InfluxDB, Redis, PostgreSQL, Grafana, Prometheus
+For comprehensive technical details, see the complete documentation set:
 
-## Quick Start with Docker Compose
+- **[INDEX.md](INDEX.md)** - Complete documentation overview and navigation
+- **[analysis-flow-diagram.md](analysis-flow-diagram.md)** - Detailed analysis pipeline with Mermaid diagrams
+- **[visual-flow-diagram.md](visual-flow-diagram.md)** - Visual representation of system flow
+- **[simple-analysis-flow.md](simple-analysis-flow.md)** - Step-by-step analysis process breakdown
+- **[data-flow-diagram.md](data-flow-diagram.md)** - Comprehensive data flow through the system
+- **[method-flow-diagram.md](method-flow-diagram.md)** - Detailed method calls and variable flow
+- **[strategy-analysis-deep-dive.md](strategy-analysis-deep-dive.md)** - Strategy analysis and backtesting guide
+- **[docker-setup-guide.md](docker-setup-guide.md)** - Docker containerized deployment guide
+- **[api-fix-summary.md](api-fix-summary.md)** - Panel API URL configuration fixes
 
-### Prerequisites
+### Executive Summary
 
-- Docker Desktop or Docker Engine with Docker Compose
-- 8GB+ RAM recommended
-- 20GB+ disk space
+- The platform combines a Python core engine (FastAPI) with a web analysis panel for configuring and visualizing strategies.
+- It supports dynamic strategy discovery, robust validation, simulation/backtesting, and comprehensive reporting.
+- Infrastructure includes InfluxDB (time-series), PostgreSQL/TimescaleDB (relational + time-series), Redis (cache/stream), Grafana & Prometheus (observability).
 
-### 1. Clone and Start
+### System Architecture
 
-```bash
-git clone <repository-url>
-cd trading-strategy-agent
+```mermaid
+graph TD
+  subgraph Client
+    UI[Web Panel]
+  end
 
-# Development mode
-docker-compose up -d
+  subgraph API[Core Engine (FastAPI)]
+    SE[Strategy Engine]
+    REG[Strategy Registry]
+    VAL[Validators]
+    PRE[Preprocessor]
+    SER[Serializer]
+    SIM[Simulator/Backtester]
+  end
 
-# Production mode
-docker-compose -f docker-compose.prod.yml up -d
+  DBT[(TimescaleDB/PostgreSQL)]
+  TSD[(InfluxDB)]
+  REDIS[(Redis)]
+  GRAF[Grafana]
+  PROM[Prometheus]
 
-# Or use the helper scripts
-./scripts/deploy.sh start           # Development
-./scripts/deploy.sh start --prod    # Production
+  UI -->|HTTP/JSON| API
+  SE --> REG
+  SE --> VAL
+  SE --> PRE
+  SE --> SER
+  SE --> SIM
+
+  SE <--> TSD
+  SE <--> DBT
+  SE <--> REDIS
+
+  PROM --> GRAF
+  API --> PROM
+  DBT --> GRAF
+  TSD --> GRAF
 ```
 
-### 2. Access Services
+### Data Flow
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **Trading Panel** | http://localhost | - |
-| **Core API** | http://localhost/api | - |
-| **Grafana** | http://localhost/grafana | admin/trading123 |
-| **Jupyter** | http://localhost:8888 | Token: trading123 |
-| **InfluxDB** | http://localhost:8086 | admin/trading123 |
-| **Prometheus** | http://localhost:9090 | - |
-| **pgAdmin** | http://localhost:5050 | admin@trading.local/trading123 |
-
-### 3. Verify Installation
-
-```bash
-# Check all services are running
-docker-compose ps
-
-# Check API health
-curl http://localhost/api/health
-
-# View logs
-docker-compose logs -f core-engine
-docker-compose logs -f panel
+```mermaid
+flowchart TD
+  A[Data Source: Exchange/CSV] --> B[Fetcher/Loader]
+  B --> C[Preprocessor: clean, types, indicators]
+  C --> D[Validator: schema, ranges, gaps]
+  D -->|valid| E[Strategy Engine]
+  D -->|invalid| X[Error Response]
+  E --> F[Strategy Registry: resolve & load]
+  F --> G[Strategy.analyze(mode, settings)]
+  G --> H[Signals & Analysis]
+  H --> I[Serializer]
+  I --> J[API Response / Storage]
+  J --> K[Panel Visualization]
+  H --> L[Simulator/Backtest]
+  L --> M[Performance Metrics + Report]
+  M --> K
 ```
 
-## Service Details
+### Analysis Pipeline (Inside Core Engine)
 
-### Core Engine (Port 5002)
-- FastAPI-based REST API
-- Strategy analysis and backtesting
-- Real-time data processing
-- Configuration management
+The orchestrator coordinates validation, preprocessing, strategy execution, and result serialization. Key modules:
+- `core-engine/src/analysis/strategy_engine.py` — `AnalysisOrchestrator`, `GeneralStrategyEngine`
+- `core-engine/src/core/strategy_interface.py` — `TradingStrategy` contract
+- `core-engine/src/analysis/trading_signals.py` — signal generation utilities
+- `core-engine/simulator/*` — trade simulation, metrics, reporting
 
-### Panel (Port 8080)
-- React-based web interface
-- Strategy configuration UI
-- Real-time analysis visualization
-- Results dashboard
+```mermaid
+sequenceDiagram
+  participant Panel
+  participant API as Core API
+  participant Orc as AnalysisOrchestrator
+  participant Reg as StrategyRegistry
+  participant Strat as Strategy
+  participant Sim as Simulator
 
-### Infrastructure Services
-
-#### InfluxDB (Port 8086)
-- Time-series database for market data
-- High-performance data storage
-- Real-time analytics
-
-#### PostgreSQL with TimescaleDB (Port 5432)
-- Relational database with time-series extensions
-- Strategy configurations and metadata
-- Historical analysis results
-
-#### Redis (Port 6379)
-- Caching layer
-- Session management
-- Real-time data streaming
-
-#### Grafana (Port 3000)
-- Monitoring dashboards
-- Performance metrics visualization
-- Alerting system
-
-#### Prometheus (Port 9090)
-- Metrics collection
-- System monitoring
-- Performance tracking
-
-## Development
-
-### Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=5002
-
-# Database Configuration
-POSTGRES_HOST=timescaledb
-POSTGRES_PORT=5432
-POSTGRES_DB=market_data
-POSTGRES_USER=trader
-POSTGRES_PASSWORD=trading123
-
-# InfluxDB Configuration
-INFLUXDB_URL=http://influxdb:8086
-INFLUXDB_TOKEN=trading-token-123456789
-INFLUXDB_ORG=trading_org
-INFLUXDB_BUCKET=market_data
-
-# Redis Configuration
-REDIS_HOST=redis
-REDIS_PORT=6379
-
-# Monitoring
-PROMETHEUS_GATEWAY=prometheus:9090
+  Panel->>API: POST /analyze {strategy, mode, data}
+  API->>Orc: execute_analysis(data, strategy, mode, settings)
+  Orc->>Orc: validate_basic_format
+  Orc->>Reg: load_strategy(strategy)
+  Reg-->>Orc: Strategy instance or error
+  Orc->>Orc: validate_strategy_mode
+  Orc->>Orc: preprocess(data)
+  Orc->>Strat: analyze(data, mode, settings)
+  Strat-->>Orc: signals, insights, metadata
+  Orc->>API: serialize(results)
+  API-->>Panel: JSON response
+  Panel->>Sim: (optional) run simulation/backtest
+  Sim-->>Panel: metrics, equity, report
 ```
 
-### Build from Source
+### API ↔ Panel Integration
 
-```bash
-# Build specific services using unified Dockerfile
-./scripts/build.sh core-engine     # Build only core engine
-./scripts/build.sh panel           # Build only panel
-./scripts/build.sh all             # Build both services
+- Panel gathers user inputs (strategy name, mode, risk settings), validates JSON, and sends requests to the API.
+- API returns structured JSON: metadata, signals, analysis, and optional performance previews.
+- Panel renders chart overlays, tables, and can run local simulations for trade planning reports.
 
-# Build with options
-./scripts/build.sh all --no-cache  # Build without cache
-./scripts/build.sh all --push      # Build and push to registry
+```mermaid
+sequenceDiagram
+  participant User
+  participant Panel
+  participant API
 
-# Traditional Docker Compose approach
-docker-compose build core-engine
-docker-compose build panel
-docker-compose up --build
+  User->>Panel: Configure & submit analysis
+  Panel->>API: POST /api/analyze
+  API-->>Panel: 200 OK {analysis, signals}
+  Panel->>Panel: Render charts, stats, table
+  User->>Panel: Run simulated backtest
+  Panel->>Panel: Local simulation (JS) or request API backtest
+  Panel-->>User: Interactive report
 ```
 
-### Development Mode
+### Backtesting & Reporting
 
-```bash
-# Start with file watching (for development)
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+- Backtests simulate trade execution using generated signals, position sizing, fees/spread, and risk rules.
+- Metrics include win rate, PnL, drawdown, profit factor, equity curve, and trade-by-trade details.
+- HTML reports are generated for distribution (examples in `agent/output/`).
 
-# View real-time logs
-docker-compose logs -f core-engine panel
-
-# Access container shell
-docker-compose exec core-engine bash
-docker-compose exec panel sh
+```mermaid
+flowchart LR
+  A[Signals] --> B[Trade Rules
+  (entry/SL/TP, sizing)]
+  B --> C[Execution Model
+  (spread, slippage)]
+  C --> D[Equity Curve]
+  D --> E[Performance Metrics]
+  E --> F[HTML/PDF Report]
 ```
 
-## Configuration
+References:
+- `agent/mf01_backtest_xauusd.py` — full backtest + HTML generation flow
+- `core-engine/simulator/advanced_simulation.py` — multi-strategy backtests & correlation
+- `core-engine/simulator/report_generator.py` — performance metrics & reporting helpers
 
-### Strategy Configuration
+### Strategy Model & Extensibility
 
-Access the panel at http://localhost and navigate to the "Strategies" tab to:
-- Configure trading strategies
-- Set risk parameters
-- Validate configurations
-- Run backtests
+- Strategies implement the `TradingStrategy` interface to ensure consistent validation and analysis.
+- Dynamic discovery via registry enables drop-in strategies under `core-engine/strategies/*`.
+- External SDK interfaces allow contribution without changing the engine internals.
 
-### Database Initialization
+Key files:
+- `core-engine/src/core/strategy_interface.py`
+- `core-engine/MODULARITY_ARCHITECTURE.md`
+- `core-engine/External_Strategist_SDK/INTERFACE_SPECIFICATION.md`
 
-The databases are automatically initialized with:
-- Default schemas and tables
-- Sample data for testing
-- User accounts and permissions
+### Operations & Observability
 
-### Custom Strategies
+- Docker Compose orchestrates services for dev/prod; helper scripts simplify builds and deploys.
+- Health endpoints and structured logs support runtime checks.
+- Prometheus scrapes metrics; Grafana provides dashboards for API latency, DB performance, and strategy KPIs.
 
-Place custom strategy files in:
-```
-core-engine/src/strategies/
-```
+### Security & Compliance (Highlights)
 
-The system will automatically detect and load new strategies.
+- Isolated services via containers and network policies.
+- Credentials managed via environment variables and secrets (production hardening recommended).
+- Audit-friendly logs and reproducible backtests support governance and investor reporting.
 
-## Monitoring
+### Performance & Scalability
 
-### Health Checks
+- Preprocessing and validation prevent expensive failures downstream.
+- Time-series databases (InfluxDB/TimescaleDB) support efficient reads at scale.
+- Stateless API scales horizontally; caching via Redis reduces repeated computations.
 
-```bash
-# Check service health
-curl http://localhost/health
-curl http://localhost/api/health
+### Roadmap (Sample)
 
-# Detailed service status
-docker-compose ps
-docker-compose top
-```
+- Parameter optimization and hyperparameter search at scale.
+- Live trading execution adapters with detailed risk controls.
+- Advanced reporting with cohort analysis and scenario testing.
 
-### Logs
+### Why It Matters (Investor View)
 
-```bash
-# View all logs
-docker-compose logs
+- Evidence-based strategy evaluation with transparent metrics and reports.
+- Modular, extensible architecture reduces time-to-market for new strategies.
+- Production-grade observability and data stores enable scaling with confidence.
 
-# Follow specific service logs
-docker-compose logs -f core-engine
-docker-compose logs -f panel
-docker-compose logs -f influxdb
 
-# View with timestamps
-docker-compose logs -t
-```
-
-### Performance Monitoring
-
-Access Grafana dashboards at http://localhost/grafana for:
-- System performance metrics
-- Database performance
-- API response times
-- Trading strategy metrics
-
-## Data Management
-
-### Backup
-
-```bash
-# Backup all data volumes
-docker-compose exec -T timescaledb pg_dump -U trader market_data > backup.sql
-docker-compose exec influxdb influx backup /backup
-
-# Copy backup files
-docker cp trading_timescaledb:/backup ./db_backup/
-```
-
-### Restore
-
-```bash
-# Restore PostgreSQL data
-docker-compose exec -T timescaledb psql -U trader -d market_data < backup.sql
-
-# Restore InfluxDB data
-docker-compose exec influxdb influx restore /backup
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Port Conflicts
-```bash
-# Check port usage
-netstat -tulpn | grep :8080
-netstat -tulpn | grep :5002
-
-# Stop conflicting services
-sudo systemctl stop apache2
-sudo systemctl stop nginx
-```
-
-#### Memory Issues
-```bash
-# Increase Docker memory limit to 8GB+
-# Check current usage
-docker stats
-
-# Clean up unused resources
-docker system prune -a
-```
-
-#### Database Connection Issues
-```bash
-# Check database containers
-docker-compose logs timescaledb
-docker-compose logs influxdb
-
-# Verify network connectivity
-docker-compose exec core-engine ping timescaledb
-docker-compose exec core-engine ping influxdb
-```
-
-### Service Restart
-
-```bash
-# Restart specific service
-docker-compose restart core-engine
-
-# Restart all services
-docker-compose restart
-
-# Restart with rebuild
-docker-compose up --build
-```
-
-### Clean Restart
-
-```bash
-# Stop all services
-docker-compose down
-
-# Remove volumes (WARNING: deletes all data)
-docker-compose down -v
-
-# Remove images
-docker-compose down --rmi all
-
-# Clean start
-docker-compose up -d
-```
-
-## API Documentation
-
-Once running, access the interactive API documentation at:
-- Swagger UI: http://localhost/api/docs
-- ReDoc: http://localhost/api/redoc
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes and test with Docker Compose
-4. Submit a pull request
-
-## License
-
-[MIT License](LICENSE) 
